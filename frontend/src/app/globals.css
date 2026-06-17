@@ -1,0 +1,159 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+
+@layer base {
+  * {
+    @apply border-surface-200 dark:border-surface-700;
+  }
+
+  body {
+    @apply bg-white text-surface-900 dark:bg-surface-900 dark:text-surface-100 font-sans antialiased;
+  }
+
+  ::selection {
+    @apply bg-primary-500/30 text-white;
+  }
+
+  ::-webkit-scrollbar {
+    @apply w-2;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-gray-100 dark:bg-surface-900;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-gray-300 dark:bg-surface-600 rounded-full hover:bg-gray-400 dark:hover:bg-surface-500;
+  }
+}
+
+@layer components {
+  .glass {
+    @apply bg-white/70 dark:bg-surface-800/20 backdrop-blur-xl border border-surface-200/50 dark:border-surface-700/30;
+  }
+
+  .glass-hover {
+    @apply hover:bg-surface-100/50 dark:hover:bg-surface-800/30 hover:border-primary-500/30 transition-all duration-300;
+  }
+
+  .gradient-text {
+    @apply bg-gradient-to-r from-primary-400 to-accent-400 bg-clip-text text-transparent;
+  }
+
+  .gradient-border {
+    @apply relative;
+  }
+
+  .gradient-border::before {
+    content: '';
+    @apply absolute inset-0 rounded-2xl bg-gradient-to-r from-primary-500 to-accent-500 p-[1px];
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+  }
+
+  .glow {
+    box-shadow: 0 0 20px rgba(99, 102, 241, 0.15),
+                0 0 40px rgba(99, 102, 241, 0.1),
+                0 0 60px rgba(99, 102, 241, 0.05);
+  }
+
+  .glow-sm {
+    box-shadow: 0 0 10px rgba(99, 102, 241, 0.1);
+  }
+
+  .typing-animation::after {
+    content: '|';
+    @apply animate-pulse text-primary-400;
+  }
+
+  .message-enter {
+    animation: messageSlideIn 0.3s ease-out;
+  }
+
+  @keyframes messageSlideIn {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+
+/* Markdown styles for chat */
+.prose-custom {
+  @apply text-gray-700 dark:text-surface-200 leading-relaxed;
+}
+
+.prose-custom p {
+  @apply mb-4 last:mb-0;
+}
+
+.prose-custom ul, .prose-custom ol {
+  @apply mb-4 pl-6;
+}
+
+.prose-custom li {
+  @apply mb-1;
+}
+
+.prose-custom ul li {
+  @apply list-disc;
+}
+
+.prose-custom ol li {
+  @apply list-decimal;
+}
+
+.prose-custom code {
+  @apply bg-gray-100 dark:bg-surface-800 px-1.5 py-0.5 rounded text-sm text-accent-400 font-mono;
+}
+
+.prose-custom pre {
+  @apply bg-gray-100 dark:bg-surface-800 rounded-xl p-4 mb-4 overflow-x-auto border border-gray-200 dark:border-surface-700;
+}
+
+.prose-custom pre code {
+  @apply bg-transparent p-0 text-gray-700 dark:text-surface-200;
+}
+
+.prose-custom h1, .prose-custom h2, .prose-custom h3 {
+  @apply text-gray-900 dark:text-white font-semibold mb-3 mt-6;
+}
+
+.prose-custom h1 { @apply text-2xl; }
+.prose-custom h2 { @apply text-xl; }
+.prose-custom h3 { @apply text-lg; }
+
+.prose-custom blockquote {
+  @apply border-l-4 border-primary-500 pl-4 italic text-gray-500 dark:text-surface-400 my-4;
+}
+
+.prose-custom a {
+  @apply text-primary-400 hover:text-primary-300 underline;
+}
+
+.prose-custom table {
+  @apply w-full border-collapse mb-4;
+}
+
+.prose-custom th, .prose-custom td {
+  @apply border border-gray-200 dark:border-surface-700 px-3 py-2 text-left;
+}
+
+.prose-custom th {
+  @apply bg-gray-100 dark:bg-surface-800 text-gray-700 dark:text-surface-200 font-medium;
+}

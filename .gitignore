@@ -1,0 +1,37 @@
+# Python
+venv/
+__pycache__/
+*.pyc
+.env
+*.egg-info/
+
+# Node
+node_modules/
+.next/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Uploads
+uploads/
+faiss_index/
+
+# Environment files
+backend/.env
+frontend/.env.local
+backend/serviceAccountKey.json
+
+# Build artifacts
+frontend/tsconfig.tsbuildinfo
+backend/server_output.log
+
+# Model cache
+backend/model_cache/
+
+# OS
+*.log
