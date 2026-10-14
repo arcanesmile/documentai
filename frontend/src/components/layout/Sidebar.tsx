@@ -21,7 +21,7 @@ const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: faDashboard },
   { href: "/dashboard/files", label: "Documents", icon: faFileLines },
   { href: "/dashboard/search", label: "Semantic Search", icon: faMagnifyingGlass },
-  { href: "/dashboard/chat", label: "AI Chat", icon: faComments },
+  { href: "/dashboard/chat", label: "AI Chat", icon: faComments, comingSoon: true },
   { href: "/dashboard/settings", label: "Settings", icon: faGear },
 ];
 
@@ -69,6 +69,11 @@ export default function Sidebar() {
             >
               <FontAwesomeIcon icon={item.icon} className={cn("h-4 w-4", isActive && "text-primary-400")} />
               <span className="text-sm font-medium">{item.label}</span>
+              {"comingSoon" in item && item.comingSoon && (
+                <span className="ml-auto rounded-full border border-amber-500/20 bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-400">
+                  Soon
+                </span>
+              )}
               {isActive && <motion.div layoutId="activeIndicator" className="ml-auto w-1.5 h-1.5 rounded-full bg-primary-500" />}
             </Link>
           );
