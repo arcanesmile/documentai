@@ -16,7 +16,7 @@ class Settings(BaseSettings):
 
     SUPABASE_URL: str = ""
     SUPABASE_SERVICE_ROLE_KEY: str = ""
-    SUPABASE_BUCKET: str = "documents"
+    SUPABASE_BUCKET: str = "Document"
 
     STRIPE_SECRET_KEY: str = ""
     STRIPE_WEBHOOK_SECRET: str = ""
@@ -26,6 +26,7 @@ class Settings(BaseSettings):
     GEMINI_API_KEY: str = ""
     LLM_PROVIDER: str = "groq"
     HUGGINGFACE_API_KEY: str = ""
+    USE_LOCAL_EMBEDDINGS: bool = False
     EMBEDDING_MODEL: str = "all-MiniLM-L6-v2"
     LLM_MODEL: str = "llama-3.3-70b-versatile"
 

@@ -30,20 +30,23 @@ class EmbeddingService:
             from sentence_transformers import SentenceTransformer
             return SentenceTransformer(model_name, local_files_only=local_only)
 
-        for attempt, local_only in enumerate(["local", "download"]):
-            try:
-                print(f"Loading embedding model: {model_name} ({'local only' if local_only else 'download'})")
-                self._model = await asyncio.wait_for(
-                    loop.run_in_executor(None, lambda lo=local_only: _try_load(lo)),
-                    timeout=25,
-                )
-                self._dimension = self._model.get_sentence_embedding_dimension()
-                print(f"Embedding model loaded (dim={self._dimension})")
-                return
-            except asyncio.TimeoutError:
-                print(f"Embedding model loading timed out ({local_only})")
-            except Exception as e:
-                print(f"Embedding model not available ({local_only}): {e}")
+        if settings.USE_LOCAL_EMBEDDINGS:
+            for attempt, local_only in enumerate(["local", "download"]):
+                try:
+                    print(f"Loading embedding model: {model_name} ({'local only' if local_only else 'download'})")
+                    self._model = await asyncio.wait_for(
+                        loop.run_in_executor(None, lambda lo=local_only: _try_load(lo)),
+                        timeout=25,
+                    )
+                    self._dimension = self._model.get_sentence_embedding_dimension()
+                    print(f"Embedding model loaded (dim={self._dimension})")
+                    return
+                except asyncio.TimeoutError:
+                    print(f"Embedding model loading timed out ({local_only})")
+                except Exception as e:
+                    print(f"Embedding model not available ({local_only}): {e}")
+        else:
+            print("Local embeddings disabled; using configured remote/mock fallback")
 
         print("Trying Gemini embeddings...")
         try:
