@@ -11,8 +11,39 @@ import datetime
 import os
 import tempfile
 import traceback
+import httpx
 
 router = APIRouter(prefix="/api/documents", tags=["Documents"])
+
+
+async def upload_to_supabase(storage_path: str, content: bytes, content_type: str) -> str:
+    if not settings.SUPABASE_URL or not settings.SUPABASE_SERVICE_ROLE_KEY:
+        return ""
+    url = f"{settings.SUPABASE_URL.rstrip('/')}/storage/v1/object/{settings.SUPABASE_BUCKET}/{storage_path}"
+    headers = {
+        "Authorization": f"Bearer {settings.SUPABASE_SERVICE_ROLE_KEY}",
+        "apikey": settings.SUPABASE_SERVICE_ROLE_KEY,
+        "Content-Type": content_type or "application/octet-stream",
+        "x-upsert": "false",
+    }
+    async with httpx.AsyncClient(timeout=120) as client:
+        response = await client.post(url, content=content, headers=headers)
+    response.raise_for_status()
+    return f"supabase:{storage_path}"
+
+
+async def delete_from_supabase(storage_path: str) -> None:
+    if not settings.SUPABASE_URL or not settings.SUPABASE_SERVICE_ROLE_KEY:
+        return
+    url = f"{settings.SUPABASE_URL.rstrip('/')}/storage/v1/object/remove/{settings.SUPABASE_BUCKET}"
+    headers = {
+        "Authorization": f"Bearer {settings.SUPABASE_SERVICE_ROLE_KEY}",
+        "apikey": settings.SUPABASE_SERVICE_ROLE_KEY,
+        "Content-Type": "application/json",
+    }
+    async with httpx.AsyncClient(timeout=60) as client:
+        response = await client.post(url, json={"prefixes": [storage_path]}, headers=headers)
+    response.raise_for_status()
 
 
 @router.get("")
@@ -64,16 +95,18 @@ async def upload_document(
         with open(temp_path, "wb") as f:
             f.write(content)
 
-        storage_url = ""
-        try:
+        storage_path = f"{user_id}/{filename}"
+        if settings.SUPABASE_URL and settings.SUPABASE_SERVICE_ROLE_KEY:
+            storage_url = await upload_to_supabase(
+                storage_path,
+                content,
+                file.content_type or "application/octet-stream",
+            )
+        else:
             bucket = firebase_service.get_bucket()
-            blob = bucket.blob(f"documents/{user_id}/{filename}")
+            blob = bucket.blob(f"documents/{storage_path}")
             blob.upload_from_filename(temp_path)
-            blob.make_public()
             storage_url = blob.public_url
-        except Exception as e:
-            print(f"Storage upload failed (using local fallback): {e}")
-            storage_url = ""
 
         text = ""
         if ext == ".txt":
@@ -141,10 +174,14 @@ async def delete_document(
         raise HTTPException(status_code=404, detail="Document not found")
 
     data = doc.to_dict()
-    bucket = firebase_service.get_bucket()
-    blob = bucket.blob(f"documents/{user_id}/{data['filename']}")
     try:
-        blob.delete()
+        storage_url = data.get("storageUrl", "")
+        if storage_url.startswith("supabase:"):
+            await delete_from_supabase(storage_url.removeprefix("supabase:"))
+        else:
+            bucket = firebase_service.get_bucket()
+            blob = bucket.blob(f"documents/{user_id}/{data['filename']}")
+            blob.delete()
     except Exception:
         pass
 

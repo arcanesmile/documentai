@@ -49,6 +49,7 @@ export const useDocumentStore = create<DocumentState>()((set, get) => ({
       }));
     } catch (err: any) {
       set({ error: err.message, uploading: false, uploadProgress: 0 });
+      throw err;
     }
   },
 

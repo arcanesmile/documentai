@@ -14,6 +14,10 @@ class Settings(BaseSettings):
     FIREBASE_STORAGE_BUCKET: str = "trade-257e7.appspot.com"
     FRONTEND_URL: str = "http://localhost:3000"
 
+    SUPABASE_URL: str = ""
+    SUPABASE_SERVICE_ROLE_KEY: str = ""
+    SUPABASE_BUCKET: str = "documents"
+
     STRIPE_SECRET_KEY: str = ""
     STRIPE_WEBHOOK_SECRET: str = ""
     STRIPE_PRO_PRICE_ID: str = ""
