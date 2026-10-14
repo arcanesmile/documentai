@@ -9,8 +9,10 @@ class Settings(BaseSettings):
     DEBUG: bool = False
 
     GOOGLE_APPLICATION_CREDENTIALS: str = "serviceAccountKey.json"
+    FIREBASE_SERVICE_ACCOUNT_JSON: str = ""
     FIREBASE_PROJECT_ID: str = "trade-257e7"
     FIREBASE_STORAGE_BUCKET: str = "trade-257e7.appspot.com"
+    FRONTEND_URL: str = "http://localhost:3000"
 
     STRIPE_SECRET_KEY: str = ""
     STRIPE_WEBHOOK_SECRET: str = ""

@@ -17,13 +17,16 @@ class FirebaseService:
     def initialize(cls):
         if cls._initialized:
             return
-        cred_path = settings.GOOGLE_APPLICATION_CREDENTIALS
-        abs_path = os.path.abspath(cred_path)
+        if settings.FIREBASE_SERVICE_ACCOUNT_JSON:
+            cls._credentials = json.loads(settings.FIREBASE_SERVICE_ACCOUNT_JSON)
+            cred = credentials.Certificate(cls._credentials)
+        else:
+            cred_path = settings.GOOGLE_APPLICATION_CREDENTIALS
+            abs_path = os.path.abspath(cred_path)
+            with open(abs_path) as f:
+                cls._credentials = json.load(f)
+            cred = credentials.Certificate(abs_path)
 
-        with open(abs_path) as f:
-            cls._credentials = json.load(f)
-
-        cred = credentials.Certificate(abs_path)
         firebase_admin.initialize_app(cred, {
             "storageBucket": settings.FIREBASE_STORAGE_BUCKET,
             "projectId": settings.FIREBASE_PROJECT_ID,

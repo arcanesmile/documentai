@@ -25,8 +25,8 @@ async def create_checkout_session(
             client_reference_id=user_id,
             mode="subscription",
             line_items=[{"price": settings.STRIPE_PRO_PRICE_ID, "quantity": 1}],
-            success_url="http://localhost:3000/dashboard?session_id={CHECKOUT_SESSION_ID}",
-            cancel_url="http://localhost:3000/pricing",
+            success_url=f"{settings.FRONTEND_URL}/dashboard?session_id={{CHECKOUT_SESSION_ID}}",
+            cancel_url=f"{settings.FRONTEND_URL}/pricing",
             metadata={"userId": user_id},
         )
         return {"url": session.url, "sessionId": session.id}
@@ -50,7 +50,7 @@ async def create_portal_session(
     try:
         session = stripe.billing_portal.Session.create(
             customer=customer_id,
-            return_url="http://localhost:3000/dashboard/settings",
+            return_url=f"{settings.FRONTEND_URL}/dashboard/settings",
         )
         return {"url": session.url}
     except Exception as e:

@@ -23,12 +23,10 @@ interface ChatState {
   clearError: () => void;
 }
 
-function getAuthHeaders(): Record<string, string> {
-  let token: string | null = null;
-  if (typeof window !== "undefined") {
-    const user = useAuthStore.getState()?.user;
-    token = (user as any)?.id ?? null;
-  }
+async function getAuthHeaders(): Promise<Record<string, string>> {
+  const token = typeof window !== "undefined"
+    ? await useAuthStore.getState().getIdToken()
+    : null;
   return {
     "Content-Type": "application/json",
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -112,9 +110,10 @@ export const useChatStore = create<ChatState>()((set, get) => ({
     set({ abortController });
 
     try {
-      const headers = getAuthHeaders();
+      const headers = await getAuthHeaders();
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/chat/stream`,
+        `${backendUrl}/api/chat/stream`,
         {
           method: "POST",
           headers,

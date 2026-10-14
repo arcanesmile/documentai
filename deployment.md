@@ -27,17 +27,10 @@
 
 3. **Configure Environment Variables**
    In Vercel dashboard:
-   - `NEXTAUTH_URL` = `https://your-app.vercel.app`
-   - `NEXTAUTH_SECRET` = Generate with: openssl rand -base64 32
-   - `GOOGLE_CLIENT_ID` = From Google Cloud Console
-   - `GOOGLE_CLIENT_SECRET` = From Google Cloud Console
-   - `MONGODB_URI` = Your MongoDB Atlas connection string
-   - `BACKEND_URL` = Your Render backend URL
    - `NEXT_PUBLIC_BACKEND_URL` = Your Render backend URL
-   - `STRIPE_SECRET_KEY` = From Stripe Dashboard
-   - `STRIPE_PUBLISHABLE_KEY` = From Stripe Dashboard
-   - `STRIPE_WEBHOOK_SECRET` = From Stripe Dashboard
+   - `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` = From Stripe Dashboard
    - `NEXT_PUBLIC_STRIPE_PRO_PRICE_ID` = Your Stripe price ID
+   - `NEXT_PUBLIC_FIREBASE_*` = Firebase web app configuration
 
 4. **Deploy**
    - Click "Deploy"
@@ -65,18 +58,17 @@
    - Set Start Command: `uvicorn app.main:app --host 0.0.0.0 --port 8000`
 
 3. **Add Environment Variables**
-   - `MONGODB_URI` = Your MongoDB Atlas connection string
-   - `DATABASE_NAME` = `realai`
-   - `SECRET_KEY` = Generate a strong secret key
-   - `ALGORITHM` = `HS256`
-   - `ACCESS_TOKEN_EXPIRE_MINUTES` = `1440`
+   - `FIREBASE_PROJECT_ID` = Your Firebase project ID
+   - `FIREBASE_STORAGE_BUCKET` = Your Firebase Storage bucket
+   - `FIREBASE_SERVICE_ACCOUNT_JSON` = The complete service account JSON, stored as a secret
+   - `FRONTEND_URL` = Your Vercel frontend URL
    - `STRIPE_SECRET_KEY` = From Stripe Dashboard
    - `STRIPE_WEBHOOK_SECRET` = From Stripe Dashboard
    - `STRIPE_PRO_PRICE_ID` = Your Stripe price ID
    - `GROQ_API_KEY` = From Groq Console
    - `EMBEDDING_MODEL` = `all-MiniLM-L6-v2`
    - `LLM_MODEL` = `llama3-70b-8192`
-   - `CORS_ORIGINS` = `https://your-frontend.vercel.app,http://localhost:3000`
+   - `CORS_ORIGINS` = `https://your-frontend.vercel.app`
    - `UPLOAD_DIR` = `./uploads`
    - `FAISS_INDEX_PATH` = `./faiss_index`
 
