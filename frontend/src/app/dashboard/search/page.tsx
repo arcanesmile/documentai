@@ -9,11 +9,13 @@ import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faMagnifyingGlass, faSpinner, faFileLines, faClockRotateLeft, faFilter, faTimes } from "@fortawesome/free-solid-svg-icons";
+import { faMagnifyingGlass, faSpinner, faFileLines, faClockRotateLeft, faFilter, faTimes, faWandMagicSparkles, faTriangleExclamation } from "@fortawesome/free-solid-svg-icons";
 import { formatDate } from "@/lib/utils";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 export default function SearchPage() {
-  const { query, setQuery, results, isSearching, history, search, fetchHistory, selectedDocumentIds, toggleDocumentFilter } = useSearchStore();
+  const { query, setQuery, results, answer, answerError, error, isSearching, history, search, fetchHistory, selectedDocumentIds, toggleDocumentFilter } = useSearchStore();
   const { documents, fetchDocuments } = useDocumentStore();
   const [showHistory, setShowHistory] = useState(true);
   const [showFilters, setShowFilters] = useState(false);
@@ -128,11 +130,38 @@ export default function SearchPage() {
         </div>
       )}
 
+      {error && !isSearching && (
+        <Card className="p-4 border-red-500/30">
+          <div className="flex items-center gap-2 text-sm text-red-500">
+            <FontAwesomeIcon icon={faTriangleExclamation} className="h-4 w-4" />
+            <span>{error}</span>
+          </div>
+        </Card>
+      )}
+
+      {(answer || answerError) && !isSearching && (
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+          <Card className="p-5 border-primary-500/30">
+            <div className="flex items-center gap-2 mb-3">
+              <FontAwesomeIcon icon={faWandMagicSparkles} className="h-4 w-4 text-primary-400" />
+              <h2 className="text-sm font-semibold text-gray-700 dark:text-surface-200">AI Answer</h2>
+            </div>
+            {answer ? (
+              <div className="prose-custom text-sm">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>{answer}</ReactMarkdown>
+              </div>
+            ) : (
+              <p className="text-sm text-amber-500">{answerError}</p>
+            )}
+          </Card>
+        </motion.div>
+      )}
+
       {results.length > 0 && !isSearching && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <p className="text-sm text-gray-500 dark:text-surface-400">
-              Found {results.length} result{results.length !== 1 ? "s" : ""}
+              {results.length} source passage{results.length !== 1 ? "s" : ""}
             </p>
           </div>
           {results.map((result, index) => (
@@ -145,6 +174,7 @@ export default function SearchPage() {
               <Card className="p-4 hover:border-primary-500/30 transition-all">
                 <div className="flex items-start justify-between mb-2 gap-2">
                   <div className="flex items-center gap-2 min-w-0">
+                    <span className="text-xs font-mono text-primary-400 flex-shrink-0">[Source {index + 1}]</span>
                     <FontAwesomeIcon icon={faFileLines} className="h-4 w-4 text-primary-400 flex-shrink-0" />
                     <span className="text-sm font-medium text-gray-700 dark:text-surface-200 truncate">{result.documentName}</span>
                   </div>

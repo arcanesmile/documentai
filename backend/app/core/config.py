@@ -1,6 +1,5 @@
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import List
-import os
 
 
 class Settings(BaseSettings):
@@ -24,6 +23,7 @@ class Settings(BaseSettings):
 
     GROQ_API_KEY: str = ""
     GEMINI_API_KEY: str = ""
+    GEMINI_MODEL: str = "gemini-2.5-flash"
     LLM_PROVIDER: str = "groq"
     HUGGINGFACE_API_KEY: str = ""
     USE_LOCAL_EMBEDDINGS: bool = False
@@ -32,6 +32,7 @@ class Settings(BaseSettings):
 
     MAX_CHUNK_SIZE: int = 1000
     CHUNK_OVERLAP: int = 200
+    MAX_UPLOAD_BYTES: int = 20 * 1024 * 1024
 
     UPLOAD_DIR: str = "./uploads"
     FAISS_INDEX_PATH: str = "./faiss_index"
@@ -42,11 +43,9 @@ class Settings(BaseSettings):
     def cors_origins_list(self) -> List[str]:
         if self.DEBUG:
             return ["*"]
-        return [origin.strip() for origin in self.CORS_ORIGINS.split(",")]
+        return [o.strip() for o in self.CORS_ORIGINS.split(",") if o.strip()]
 
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
+    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
 
 settings = Settings()

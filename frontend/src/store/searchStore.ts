@@ -5,6 +5,8 @@ import { api } from "@/lib/api";
 interface SearchState {
   query: string;
   results: SearchResult[];
+  answer: string | null;
+  answerError: string | null;
   history: SearchHistory[];
   isSearching: boolean;
   error: string | null;
@@ -21,6 +23,8 @@ interface SearchState {
 export const useSearchStore = create<SearchState>()((set, get) => ({
   query: "",
   results: [],
+  answer: null,
+  answerError: null,
   history: [],
   isSearching: false,
   error: null,
@@ -30,14 +34,15 @@ export const useSearchStore = create<SearchState>()((set, get) => ({
 
   search: async (query: string) => {
     try {
-      set({ isSearching: true, error: null, query });
-      const data = await api.post<{ results: SearchResult[] }>("/search", {
+      set({ isSearching: true, error: null, query, answer: null, answerError: null });
+      const data = await api.post<{ results: SearchResult[]; answer: string | null; answerError: string | null }>("/search", {
         query,
         documentIds: get().selectedDocumentIds.length > 0 ? get().selectedDocumentIds : undefined,
       });
-      set({ results: data.results, isSearching: false });
+      set({ results: data.results, answer: data.answer, answerError: data.answerError, isSearching: false });
+      get().fetchHistory();
     } catch (err: any) {
-      set({ error: err.message, isSearching: false });
+      set({ error: err?.response?.data?.detail || err.message, isSearching: false, results: [] });
     }
   },
 
@@ -56,6 +61,6 @@ export const useSearchStore = create<SearchState>()((set, get) => ({
     }));
   },
 
-  clearResults: () => set({ results: [], query: "" }),
+  clearResults: () => set({ results: [], answer: null, answerError: null, query: "" }),
   clearError: () => set({ error: null }),
 }));

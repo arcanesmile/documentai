@@ -2,6 +2,7 @@ import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
+import logging
 import os
 
 from .core.config import settings
@@ -15,6 +16,11 @@ from .api.search import router as search_router
 from .api.chat import router as chat_router
 from .api.stripe_routes import router as stripe_router
 from .api.admin import router as admin_router
+
+logging.basicConfig(
+    level=logging.DEBUG if settings.DEBUG else logging.INFO,
+    format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+)
 
 
 @asynccontextmanager

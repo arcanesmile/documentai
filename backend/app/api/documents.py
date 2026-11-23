@@ -6,12 +6,15 @@ from ..services.usage_service import usage_service
 from ..services.rag_service import rag_service
 from ..core.firebase import firebase_service
 from ..core.config import settings
-import uuid
+from ..services.file_service import file_service
+import asyncio
 import datetime
+import logging
 import os
-import tempfile
-import traceback
+import uuid
 import httpx
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/documents", tags=["Documents"])
 
@@ -72,6 +75,9 @@ async def list_documents(
     return result
 
 
+ALLOWED_EXTENSIONS = {".pdf", ".docx", ".txt", ".md", ".csv"}
+
+
 @router.post("/upload")
 async def upload_document(
     file: UploadFile = File(...),
@@ -80,85 +86,78 @@ async def upload_document(
 ):
     user_id = current_user["id"]
 
-    can_upload = await usage_service.check_upload_limit(user_id)
-    if not can_upload:
+    if not await usage_service.check_upload_limit(user_id):
         raise HTTPException(status_code=403, detail="Upload limit reached")
 
-    ext = os.path.splitext(file.filename or "file")[1].lower()
-    filename = f"{uuid.uuid4()}{ext}"
-    file_size = 0
-
-    temp_path = os.path.join(tempfile.gettempdir(), filename)
-    try:
-        content = await file.read()
-        file_size = len(content)
-        with open(temp_path, "wb") as f:
-            f.write(content)
-
-        storage_path = f"{user_id}/{filename}"
-        if settings.SUPABASE_URL and settings.SUPABASE_SERVICE_ROLE_KEY:
-            storage_url = await upload_to_supabase(
-                storage_path,
-                content,
-                file.content_type or "application/octet-stream",
-            )
-        else:
-            bucket = firebase_service.get_bucket()
-            blob = bucket.blob(f"documents/{storage_path}")
-            blob.upload_from_filename(temp_path)
-            storage_url = blob.public_url
-
-        text = ""
-        if ext == ".txt":
-            text = content.decode("utf-8", errors="ignore")
-        elif ext == ".pdf":
-            from PyPDF2 import PdfReader
-            with open(temp_path, "rb") as f:
-                reader = PdfReader(f)
-                text = "\n".join(page.extract_text() or "" for page in reader.pages)
-        elif ext == ".docx":
-            from docx import Document
-            doc = Document(temp_path)
-            text = "\n".join(p.text for p in doc.paragraphs)
-        else:
-            text = content.decode("utf-8", errors="ignore")
-
-        doc_id = str(uuid.uuid4())
-        now = datetime.datetime.utcnow()
-
-        chunks_count, chunks = await rag_service.index_document(
-            document_id=doc_id,
-            document_name=file.filename or "untitled",
-            text=text,
-            user_id=user_id,
+    original_name = os.path.basename(file.filename or "untitled")
+    ext = os.path.splitext(original_name)[1].lower()
+    if ext not in ALLOWED_EXTENSIONS:
+        raise HTTPException(
+            status_code=415,
+            detail=f"Unsupported file type. Allowed: {', '.join(sorted(ALLOWED_EXTENSIONS))}",
         )
 
-        doc_data = {
-            "userId": user_id,
-            "filename": filename,
-            "originalName": file.filename or "untitled",
-            "fileType": file.content_type or ext,
-            "fileSize": file_size,
-            "storageUrl": storage_url,
-            "chunks": chunks_count,
-            "indexed": chunks_count > 0,
-            "rawText": text[:50000],
-            "createdAt": now,
-            "updatedAt": now,
-        }
+    content = await file.read(settings.MAX_UPLOAD_BYTES + 1)
+    if len(content) > settings.MAX_UPLOAD_BYTES:
+        raise HTTPException(status_code=413, detail="File too large")
+    if not content:
+        raise HTTPException(status_code=400, detail="File is empty")
 
-        await db.collection("documents").document(doc_id).set(doc_data)
-        await usage_service.increment_upload_count(user_id, file_size)
+    # Extract text before storing anything, so unreadable files fail fast.
+    text = await asyncio.to_thread(file_service.extract_text, content, ext)
+    if not text.strip():
+        raise HTTPException(
+            status_code=422,
+            detail="No extractable text found (scanned/image-only PDFs aren't supported yet)",
+        )
 
-        doc_data["id"] = doc_id
-        return doc_data
+    filename = f"{uuid.uuid4()}{ext}"
+    storage_path = f"{user_id}/{filename}"
+    content_type = file.content_type or "application/octet-stream"
+    doc_id = str(uuid.uuid4())
 
-    except Exception as e:
-        traceback.print_exc()
-        raise HTTPException(status_code=500, detail=str(e))
-    finally:
-        if os.path.exists(temp_path):
-            os.remove(temp_path)
+    try:
+        if settings.SUPABASE_URL and settings.SUPABASE_SERVICE_ROLE_KEY:
+            storage_url = await upload_to_supabase(storage_path, content, content_type)
+        else:
+            def _firebase_upload():
+                blob = firebase_service.get_bucket().blob(f"documents/{storage_path}")
+                blob.upload_from_string(content, content_type=content_type)
+                return blob.public_url
+            storage_url = await asyncio.to_thread(_firebase_upload)
+    except Exception:
+        logger.exception("Storage upload failed")
+        raise HTTPException(status_code=502, detail="Failed to store file")
+
+    try:
+        chunks_count, _ = await rag_service.index_document(
+            document_id=doc_id, document_name=original_name, text=text, user_id=user_id
+        )
+    except Exception:
+        logger.exception("Indexing failed")
+        raise HTTPException(status_code=500, detail="Failed to index document")
+
+    now = datetime.datetime.now(datetime.timezone.utc)
+    doc_data = {
+        "userId": user_id,
+        "filename": filename,
+        "originalName": original_name,
+        "fileType": content_type,
+        "fileSize": len(content),
+        "storageUrl": storage_url,
+        "chunks": chunks_count,
+        "indexed": chunks_count > 0,
+        # Firestore docs max out at 1 MiB; rawText is used to rebuild the index.
+        "rawText": text[:500_000],
+        "createdAt": now,
+        "updatedAt": now,
+    }
+    await db.collection("documents").document(doc_id).set(doc_data)
+    await usage_service.increment_upload_count(user_id, len(content))
+
+    doc_data.pop("rawText")
+    doc_data["id"] = doc_id
+    return doc_data
 
 
 @router.delete("/{document_id}", status_code=204)
@@ -181,9 +180,9 @@ async def delete_document(
         else:
             bucket = firebase_service.get_bucket()
             blob = bucket.blob(f"documents/{user_id}/{data['filename']}")
-            blob.delete()
+            await asyncio.to_thread(blob.delete)
     except Exception:
-        pass
+        logger.warning("Failed to delete stored file for %s", document_id, exc_info=True)
 
     await rag_service.delete_document_chunks(document_id)
     await usage_service.decrement_upload_count(user_id, data.get("fileSize", 0))

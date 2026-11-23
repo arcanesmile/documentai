@@ -5,7 +5,8 @@ from typing import Optional, List
 class SearchRequest(BaseModel):
     query: str = Field(..., min_length=1, max_length=500)
     documentIds: Optional[List[str]] = None
-    top_k: int = Field(default=5, ge=1, le=20)
+    top_k: int = Field(default=6, ge=1, le=20)
+    analyze: bool = True
 
 
 class SearchResult(BaseModel):
@@ -18,6 +19,9 @@ class SearchResult(BaseModel):
 
 
 class SearchResponse(BaseModel):
+    answer: Optional[str] = None
+    answerError: Optional[str] = None
+    provider: Optional[str] = None
     results: List[SearchResult]
     total: int
 

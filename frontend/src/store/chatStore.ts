@@ -126,8 +126,12 @@ export const useChatStore = create<ChatState>()((set, get) => ({
       );
 
       if (!response.ok) {
-        const errBody = await response.text();
-        throw new Error(errBody ? `Request failed (${response.status})` : `Request failed (${response.status})`);
+        let detail = `Request failed (${response.status})`;
+        try {
+          const body = await response.json();
+          if (body?.detail) detail = typeof body.detail === "string" ? body.detail : detail;
+        } catch {}
+        throw new Error(detail);
       }
 
       const reader = response.body?.getReader();
@@ -162,8 +166,16 @@ export const useChatStore = create<ChatState>()((set, get) => ({
           if (!line.startsWith("data: ")) continue;
           const data = line.slice(6).trim();
           if (!data || data === "[DONE]") continue;
+          let parsed: any;
           try {
-            const parsed = JSON.parse(data);
+            parsed = JSON.parse(data);
+          } catch {
+            continue;
+          }
+          {
+            if (parsed.error) {
+              set({ error: parsed.error });
+            }
             if (parsed.content) {
               fullContent += parsed.content;
               set((state) => ({
@@ -181,11 +193,11 @@ export const useChatStore = create<ChatState>()((set, get) => ({
                 set((state) => ({
                   currentConversation: state.currentConversation
                     ? { ...state.currentConversation, _id: finalConvId }
-                    : null,
+                    : ({ _id: finalConvId, title: content.slice(0, 50), messages: [] } as any),
                 }));
               }
             }
-          } catch {}
+          }
         }
       }
 

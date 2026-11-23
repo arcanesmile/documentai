@@ -30,7 +30,7 @@ class FileService:
             pdf_file = io.BytesIO(content)
             reader = PdfReader(pdf_file)
             for page in reader.pages:
-                text += page.extract_text() + "\n"
+                text += (page.extract_text() or "") + "\n"
         except Exception as e:
             print(f"PDF extraction error: {e}")
         return text.strip()
@@ -42,6 +42,9 @@ class FileService:
             doc = DocxDocument(docx_file)
             for para in doc.paragraphs:
                 text += para.text + "\n"
+            for table in doc.tables:
+                for row in table.rows:
+                    text += " | ".join(cell.text.strip() for cell in row.cells) + "\n"
         except Exception as e:
             print(f"DOCX extraction error: {e}")
         return text.strip()
@@ -56,13 +59,13 @@ class FileService:
                 return ""
 
     def extract_text(self, content: bytes, file_type: str) -> str:
-        if "pdf" in file_type.lower():
+        """file_type may be an extension (".pdf") or a MIME type."""
+        ft = file_type.lower()
+        if "pdf" in ft:
             return self.extract_text_from_pdf(content)
-        elif "word" in file_type.lower() or "docx" in file_type.lower():
+        if "docx" in ft or "wordprocessingml" in ft:
             return self.extract_text_from_docx(content)
-        elif "text" in file_type.lower():
-            return self.extract_text_from_txt(content)
-        return ""
+        return self.extract_text_from_txt(content)
 
 
 file_service = FileService()
